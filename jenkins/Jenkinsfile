@@ -1,0 +1,50 @@
+pipeline {
+  agent any
+
+  environment {
+    REGISTRY = "pycharmedme"
+    IMAGE_TAG = "${BUILD_NUMBER}"
+  }
+
+  stages {
+    stage('Docker Login') {
+        steps {
+            withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+            )]) {
+            sh '''
+                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            '''
+            }
+        }
+    }
+
+
+    stage('Build & Push Ingestor') {
+      steps {
+        sh '''
+          docker build -t $REGISTRY/ingestor:$IMAGE_TAG services/ingestor
+          docker push $REGISTRY/ingestor:$IMAGE_TAG
+        '''
+      }
+    }
+
+    stage('Update Manifests') {
+        steps {
+            withCredentials([string(credentialsId: 'git-token', variable: 'GIT_TOKEN')]) {
+            sh '''
+                git config user.email "jenkins@ci.local"
+                git config user.name "jenkins"
+
+                sed -i "s|image: pycharmedme/ingestor:.*|image: pycharmedme/ingestor:$IMAGE_TAG|" k8s/ingestor/deployment.yaml
+
+                git add k8s/ingestor/deployment.yaml
+                git commit -m "Update ingestor image to $IMAGE_TAG"
+                git push https://$GIT_TOKEN@github.com/PyCharmedMe/security-events-platform.git
+            '''
+            }
+        }
+    }
+}
