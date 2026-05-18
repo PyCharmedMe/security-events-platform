@@ -7,7 +7,7 @@ events = []
 def ingest_event():
     event = request.json
     events.append(event)
-    return jsonify({"status": "event received"}), 201
+    return jsonify({"status": "event received!"}), 201
 
 @app.route("/events", methods=["GET"])
 def get_events():

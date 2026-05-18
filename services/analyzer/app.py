@@ -6,9 +6,9 @@ INGESTOR_URL = "http://ingestor:5000/events"
 app = Flask(__name__)
 
 def classify(event):
-    if event.get("type") == "login_failure":
+    if event.get("type") == "login_failure!":
         return "MEDIUM"
-    if event.get("type") == "port_scan":
+    if event.get("type") == "port_scan:":
         return "HIGH"
     return "LOW"
 
